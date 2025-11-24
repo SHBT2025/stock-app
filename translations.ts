@@ -36,7 +36,14 @@ export const translations = {
     importData: "Import Data",
     importSuccess: "Data imported successfully!",
     importError: "Failed to import. Invalid file format.",
-    delete: "Delete"
+    delete: "Delete",
+    settings: "Settings",
+    apiKeyLabel: "Gemini API Key",
+    apiKeyPlaceholder: "Paste your API Key here",
+    apiKeyHelp: "Your key is stored locally in your browser and never sent to our servers.",
+    getKey: "Get API Key",
+    save: "Save",
+    missingKey: "API Key Required"
   },
   zh: {
     appTitle: "拿幸炒股",
@@ -73,7 +80,14 @@ export const translations = {
     importData: "导入数据",
     importSuccess: "数据导入成功！",
     importError: "导入失败。文件格式无效。",
-    delete: "删除"
+    delete: "删除",
+    settings: "设置",
+    apiKeyLabel: "Gemini API Key",
+    apiKeyPlaceholder: "在此粘贴您的 API Key",
+    apiKeyHelp: "您的 Key 仅存储在本地浏览器中，绝不会上传到我们的服务器。",
+    getKey: "获取 API Key",
+    save: "保存",
+    missingKey: "需要 API Key"
   },
   ja: {
     appTitle: "拿幸炒股",
@@ -110,7 +124,14 @@ export const translations = {
     importData: "インポート",
     importSuccess: "データのインポートに成功しました！",
     importError: "インポートに失敗しました。無効な形式です。",
-    delete: "削除"
+    delete: "削除",
+    settings: "設定",
+    apiKeyLabel: "Gemini API Key",
+    apiKeyPlaceholder: "ここにAPIキーを貼り付け",
+    apiKeyHelp: "キーはローカルブラウザにのみ保存され、サーバーには送信されません。",
+    getKey: "APIキーを取得",
+    save: "保存",
+    missingKey: "APIキーが必要です"
   }
 };
 

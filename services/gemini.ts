@@ -1,17 +1,17 @@
 import { GoogleGenAI } from "@google/genai";
 import { PriceUpdateResult } from "../types";
 
-// Initialize Gemini Client
-// Note: process.env.API_KEY is assumed to be available as per instructions.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 // Helper to escape special regex characters to prevent crashes on invalid user input
 function escapeRegExp(string: string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export const fetchStockPrices = async (symbols: string[]): Promise<PriceUpdateResult[]> => {
+export const fetchStockPrices = async (symbols: string[], apiKey: string): Promise<PriceUpdateResult[]> => {
   if (symbols.length === 0) return [];
+  if (!apiKey) throw new Error("API Key is missing");
+
+  // Initialize Gemini Client dynamically with the user-provided key
+  const ai = new GoogleGenAI({ apiKey: apiKey });
 
   const prompt = `
     Find the current real-time stock price and the short company name for the following symbols: ${symbols.join(', ')}.

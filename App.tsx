@@ -15,6 +15,16 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>(SortOption.ADDED_DESC);
   const [language, setLanguage] = useState<Language>('zh'); 
+  
+  // API Key Strategy:
+  // 1. Check for System Key (Environment Variable) - For Vercel/Netlify "Open and Use" deployments
+  // 2. Fallback to User Key (LocalStorage) - For GitHub Pages / Static deployments
+  const systemKey = process.env.API_KEY || '';
+  const [userKey, setUserKey] = useState(() => localStorage.getItem('stealth_gemini_key') || '');
+  const apiKey = systemKey || userKey;
+  const isUsingSystemKey = !!systemKey;
+
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Editable Title State
   const [customTitle, setCustomTitle] = useState(() => localStorage.getItem('stealth_app_title') || '');
@@ -35,6 +45,12 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('stealth_app_subtitle', customSubtitle);
   }, [customSubtitle]);
+
+  // Persist API Key securely
+  const handleSaveApiKey = (key: string) => {
+      setUserKey(key);
+      localStorage.setItem('stealth_gemini_key', key);
+  };
 
   const handleAddStock = (newStock: StockTracker) => {
     setStocks(prev => [newStock, ...prev]);
@@ -106,6 +122,12 @@ const App: React.FC = () => {
   };
 
   const refreshPrices = useCallback(async (subset?: StockTracker[]) => {
+    if (!apiKey) {
+        setError(t.missingKey);
+        setIsSettingsOpen(true);
+        return;
+    }
+
     // If specific subset passed, use it. Otherwise refresh all incomplete items.
     const targets = subset || stocks.filter(s => !s.isCompleted);
     
@@ -117,7 +139,7 @@ const App: React.FC = () => {
     const symbols: string[] = Array.from(new Set(targets.map(s => s.symbol)));
 
     try {
-      const results: PriceUpdateResult[] = await fetchStockPrices(symbols);
+      const results: PriceUpdateResult[] = await fetchStockPrices(symbols, apiKey);
       
       setStocks(currentStocks => {
         return currentStocks.map(stock => {
@@ -160,7 +182,7 @@ const App: React.FC = () => {
              return { 
                  ...stock, 
                  lastUpdated: Date.now(),
-                 errorMessage: "Update failed (Check Symbol/Connection)" 
+                 errorMessage: "Update failed" 
             };
          }
          return stock;
@@ -169,10 +191,12 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [stocks, t.errorUpdate]);
+  }, [stocks, apiKey, t.errorUpdate, t.missingKey]);
 
   useEffect(() => {
-    // Only auto-refresh active stocks
+    // Only auto-refresh active stocks if we have an API key
+    if (!apiKey) return;
+
     const activeStocks = stocks.filter(s => !s.isCompleted);
     
     // Check if update is needed (never updated OR older than 1 hour)
@@ -188,7 +212,7 @@ const App: React.FC = () => {
         refreshPrices(toUpdate);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
+  }, [apiKey]); // Added apiKey dependency
 
   // Sorting Logic
   const getSortedStocks = (list: StockTracker[]) => {
@@ -225,6 +249,75 @@ const App: React.FC = () => {
         className="hidden" 
       />
 
+      {/* API Key Modal / Settings Panel */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
+            <div className="bg-surface border border-slate-700 rounded-xl p-6 max-w-md w-full shadow-2xl relative">
+                 <button 
+                    onClick={() => setIsSettingsOpen(false)}
+                    className="absolute top-4 right-4 text-slate-400 hover:text-white"
+                 >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                 </button>
+                 <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {t.settings}
+                 </h2>
+                 
+                 <div className="space-y-4">
+                     {isUsingSystemKey ? (
+                         <div className="bg-success/20 border border-success/30 text-success p-3 rounded-lg text-sm font-medium flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            System Key Active (Managed by Admin)
+                         </div>
+                     ) : (
+                         <>
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">
+                                    {t.apiKeyLabel}
+                                </label>
+                                <input 
+                                    type="password" 
+                                    value={userKey}
+                                    onChange={(e) => handleSaveApiKey(e.target.value)}
+                                    placeholder={t.apiKeyPlaceholder}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-mono text-sm"
+                                />
+                            </div>
+                            
+                            <div className="bg-slate-800/50 p-3 rounded-lg text-xs text-slate-400 leading-relaxed">
+                                {t.apiKeyHelp}
+                            </div>
+
+                            <a 
+                                href="https://aistudio.google.com/app/apikey" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-primary hover:text-primary/80 text-sm font-medium"
+                            >
+                                {t.getKey} &rarr;
+                            </a>
+
+                            <button 
+                                onClick={() => setIsSettingsOpen(false)}
+                                className="w-full bg-primary text-slate-900 font-bold py-3 rounded-lg hover:bg-primary/90 transition-colors"
+                            >
+                                {t.save}
+                            </button>
+                        </>
+                     )}
+                 </div>
+            </div>
+        </div>
+      )}
+
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
         <div className="w-full md:w-auto">
           {/* Editable Title */}
@@ -247,6 +340,21 @@ const App: React.FC = () => {
 
         <div className="flex flex-col items-end gap-3 w-full md:w-auto shrink-0">
             <div className="flex flex-wrap justify-end items-center gap-2">
+                 
+                 {/* Settings Button */}
+                 <button 
+                   onClick={() => setIsSettingsOpen(true)}
+                   className={`bg-surface border border-slate-700 hover:bg-slate-700 py-1.5 px-3 rounded-lg text-xs transition-colors flex items-center gap-1 ${!apiKey ? 'animate-pulse border-red-500 text-red-400' : 'text-slate-300'}`}
+                   title={t.settings}
+                 >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {t.settings}
+                    {!apiKey && <span className="w-2 h-2 rounded-full bg-red-500 ml-1"></span>}
+                 </button>
+
                  {/* Language Selector */}
                 <div className="relative group">
                     <select
@@ -323,11 +431,18 @@ const App: React.FC = () => {
       </header>
 
       {error && (
-        <div className="mb-6 bg-red-400/10 border border-red-400/20 text-red-400 p-4 rounded-xl flex items-center gap-3">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="mb-6 bg-red-400/10 border border-red-400/20 text-red-400 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          {error}
+          <div className="flex-1">
+             {error}
+             {!apiKey && (
+                 <button onClick={() => setIsSettingsOpen(true)} className="ml-2 underline hover:text-white font-bold">
+                     {t.settings}
+                 </button>
+             )}
+          </div>
         </div>
       )}
 
