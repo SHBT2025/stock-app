@@ -16,14 +16,8 @@ const App: React.FC = () => {
   const [sortBy, setSortBy] = useState<SortOption>(SortOption.ADDED_DESC);
   const [language, setLanguage] = useState<Language>('zh'); 
   
-  // API Key Strategy:
-  // 1. Check for System Key (Environment Variable) - For Vercel/Netlify "Open and Use" deployments
-  // 2. Fallback to User Key (LocalStorage) - For GitHub Pages / Static deployments
-  const systemKey = process.env.API_KEY || '';
-  const [userKey, setUserKey] = useState(() => localStorage.getItem('stealth_gemini_key') || '');
-  const apiKey = systemKey || userKey;
-  const isUsingSystemKey = !!systemKey;
-
+  // API Key & Settings State
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('stealth_gemini_key') || '');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Editable Title State
@@ -48,7 +42,7 @@ const App: React.FC = () => {
 
   // Persist API Key securely
   const handleSaveApiKey = (key: string) => {
-      setUserKey(key);
+      setApiKey(key);
       localStorage.setItem('stealth_gemini_key', key);
   };
 
@@ -270,49 +264,38 @@ const App: React.FC = () => {
                  </h2>
                  
                  <div className="space-y-4">
-                     {isUsingSystemKey ? (
-                         <div className="bg-success/20 border border-success/30 text-success p-3 rounded-lg text-sm font-medium flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            System Key Active (Managed by Admin)
-                         </div>
-                     ) : (
-                         <>
-                            <div>
-                                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">
-                                    {t.apiKeyLabel}
-                                </label>
-                                <input 
-                                    type="password" 
-                                    value={userKey}
-                                    onChange={(e) => handleSaveApiKey(e.target.value)}
-                                    placeholder={t.apiKeyPlaceholder}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-mono text-sm"
-                                />
-                            </div>
-                            
-                            <div className="bg-slate-800/50 p-3 rounded-lg text-xs text-slate-400 leading-relaxed">
-                                {t.apiKeyHelp}
-                            </div>
+                     <div>
+                        <label className="block text-xs font-bold uppercase text-slate-500 mb-1">
+                            {t.apiKeyLabel}
+                        </label>
+                        <input 
+                            type="password" 
+                            value={apiKey}
+                            onChange={(e) => handleSaveApiKey(e.target.value)}
+                            placeholder={t.apiKeyPlaceholder}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-mono text-sm"
+                        />
+                     </div>
+                     
+                     <div className="bg-slate-800/50 p-3 rounded-lg text-xs text-slate-400 leading-relaxed">
+                         {t.apiKeyHelp}
+                     </div>
 
-                            <a 
-                                href="https://aistudio.google.com/app/apikey" 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center text-primary hover:text-primary/80 text-sm font-medium"
-                            >
-                                {t.getKey} &rarr;
-                            </a>
+                     <a 
+                        href="https://aistudio.google.com/app/apikey" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center text-primary hover:text-primary/80 text-sm font-medium"
+                     >
+                        {t.getKey} &rarr;
+                     </a>
 
-                            <button 
-                                onClick={() => setIsSettingsOpen(false)}
-                                className="w-full bg-primary text-slate-900 font-bold py-3 rounded-lg hover:bg-primary/90 transition-colors"
-                            >
-                                {t.save}
-                            </button>
-                        </>
-                     )}
+                     <button 
+                        onClick={() => setIsSettingsOpen(false)}
+                        className="w-full bg-primary text-slate-900 font-bold py-3 rounded-lg hover:bg-primary/90 transition-colors"
+                     >
+                        {t.save}
+                     </button>
                  </div>
             </div>
         </div>
