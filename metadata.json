@@ -1,0 +1,5 @@
+{
+  "name": "拿幸炒股",
+  "description": "A privacy-focused stock tracking tool that visualizes progress towards target prices without displaying raw price data. Features real-time updates via Gemini Search Grounding.",
+  "requestFramePermissions": []
+}
